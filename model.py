@@ -32,8 +32,7 @@ class Model:
 
     def fit(self, X_train, Y_train, epochs=300, batch_size=32):
         lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, verbose=1)
-        self.history = self.model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1,
-                                      callback=[lr_reducer])
+        self.history = self.model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1,callbacks=[lr_reducer])
         return self.history
 
     def visualise_history(self):
