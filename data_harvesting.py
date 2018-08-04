@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 import os
-import json
 import requests
 from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
 
 # Stock price daily data is taken from https://www.alphavantage.co/ API from 1995 to up til now
 url = 'https://www.alphavantage.co/query'
@@ -39,9 +39,9 @@ class Harvesting:
                 print("Network connection error or wrong url")
                 return
             df = pd.DataFrame(data={'date': date, 'close': close})
-            df.to_csv('data.csv', sep='\t')
+            df.to_csv('data.csv')
 
-        self.data = df[['date', 'close']]
+        self.data = df
 
         return self.data
 
@@ -51,8 +51,8 @@ class Harvesting:
         for i in range(0, len(self.data), step):
 
             try:
-                x_i = np.array(self.data.iloc[i:i + train, 1])
-                y_i = self.data.iloc[i + train + predict, 1]
+                x_i = np.array(self.data['close'][i:i + train])
+                y_i = self.data['close'][i + train + predict]
 
                 if binary:
                     # for stock price hike or fall [hike, fall]
@@ -65,14 +65,13 @@ class Harvesting:
                         y_i = preprocessing.scale(y_i)
 
                 else:
-                    timeseries = np.array(self.data.iloc[i:i + train + predict, 1])
+                    timeseries = np.array(self.data['close'][i:i + train + predict])
                     timeseries = preprocessing.scale(timeseries)
-                    x_i = timeseries[:-1]
-                    y_i = timeseries[-1]
+                    x_i = timeseries[:-1*predict]
+                    y_i = timeseries[-predict:]
 
             except:
                 break
-
             X.append(x_i)
             Y.append(y_i)
 
@@ -80,3 +79,13 @@ class Harvesting:
         print('each chunk contains', len(X[0]))
         return np.array(X), np.array(Y)
 
+    @staticmethod
+    def data_split(X, Y, split_ratio=0.1):
+
+        def reform_data(xi):
+            return xi.reshape(-1,1)
+
+        X = np.apply_along_axis(reform_data, 1, X)
+        X_train, X_test, Y_train, Y_test = train_test_split(
+            X, Y, test_size=split_ratio)
+        return X_train, X_test, Y_train, Y_test
