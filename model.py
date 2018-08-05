@@ -10,10 +10,10 @@ class Model:
         self.history = None
         self.model = Sequential()
 
-    def build_model(self, input_shape=(20, 1), output_shape=1 ):
+    def build_model(self, input_shape=(20, 1), output_shape=1):
         self.model.add(SeparableConv1D(filters=32, kernel_size=5, input_shape=input_shape, activation='relu'))
         self.model.add(MaxPool1D(pool_size=2))
-        self.model.add(Conv1D(filters=64, kernel_size=3, activation='relu'))
+        self.model.add(Conv1D(filters=100, kernel_size=3, activation='relu'))
         self.model.add(MaxPool1D(pool_size=2))
         self.model.add(Dropout(0.15))
         self.model.add(Flatten())
@@ -32,7 +32,8 @@ class Model:
 
     def fit(self, X_train, Y_train, epochs=300, batch_size=32):
         lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, verbose=1)
-        self.history = self.model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1,callbacks=[lr_reducer])
+        self.history = self.model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1,
+                                      callbacks=[lr_reducer])
         return self.history
 
     def visualise_history(self):
@@ -51,4 +52,18 @@ class Model:
         plt.xlabel('epoch')
         plt.legend(['train', 'validation'], loc='upper left')
         plt.show()
+
+    def evaluate(self, X_test, Y_test):
+        p = self.model.evaluate(X_test, Y_test)
+        print("model loss - %f \n model mean absolute error - %f" % (p[0], p[1]))
+        pre = self.model.predict(X_test)
+        plt.plot(pre[:50])
+        plt.plot(Y_test[:50])
+        plt.title("Difference compared to real stock close value")
+        plt.ylabel("scaled closing value")
+        plt.xlabel("epoch")
+        plt.legend(['predicted value', 'actual value'], loc='upper left')
+        plt.show()
+
+
 
