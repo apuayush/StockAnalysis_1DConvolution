@@ -1,49 +1,47 @@
 import numpy as np
 import pandas as pd
 import os
-import requests
-from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 
-# Stock price daily data is taken from https://www.alphavantage.co/ API from 1995 to up til now
-url = 'https://www.alphavantage.co/query'
-params = {
-    'function': 'TIME_SERIES_DAILY',
-    'symbol': 'MSFT',
-    'outputsize': 'full',
-    'apikey': '5COC2L9JP8SMNM41'
-}
+# Stock price daily data is taken Kaggles competing on Huge stock Price dataset and the dataset is for company
+filename = "aa.us.txt"
 
 
 class Harvesting:
     def __init__(self):
         self.data = []
+        self.mean = None
+        self.std = None
 
-    def load_data(self, url=url, params=params):
+    def load_data(self, filename=filename):
         date = []
         close = []
         if 'data.csv' in os.listdir():
             df = pd.read_csv('data.csv')
-
+        # Parsing from csv to reduce the time to load data everytime
         else:
-            # get the data from api
-            try:
-                api_data = requests.get(url, params=params).json()
-                for i in api_data['Time Series (Daily)']:
-                    dt = i
-                    close_value = np.float32(api_data['Time Series (Daily)'][i]['4. close'])
-                    date.append(dt)
-                    close.append(close_value)
+            # read data from file
+            with open(filename, 'r') as f:
+                for line in f.read().split()[1:]:
+                    date.append(line.split(',')[0])
+                    close.append((line.split(',')[4]))
 
-            except:
-                print("Network connection error or wrong url")
-                return
             df = pd.DataFrame(data={'date': date, 'close': close})
             df.to_csv('data.csv')
 
         self.data = df
 
         return self.data
+
+    def scale(self, timeline):
+        if self.mean is None or self.std is None:
+            self.mean = np.mean(np.array(self.data['close']))
+            self.std = np.std(np.array(self.data['close']))
+
+        return (timeline - self.mean) / self.std
+
+    def unscale(self, Y):
+        return Y * self.std + self.mean
 
     def split_into_chunks(self, train, predict, step, binary=False, scale=True):
         X = []
@@ -61,13 +59,11 @@ class Harvesting:
 
                     else:
                         y_i = [0., 1.]
-                    if scale:
-                        y_i = preprocessing.scale(y_i)
 
                 else:
                     timeseries = np.array(self.data['close'][i:i + train + predict])
-                    timeseries = preprocessing.scale(timeseries)
-                    x_i = timeseries[:-1*predict]
+                    timeseries = self.scale(timeseries)
+                    x_i = timeseries[:-1 * predict]
                     y_i = timeseries[-predict:]
 
             except:
@@ -83,7 +79,7 @@ class Harvesting:
     def data_split(X, Y, split_ratio=0.1):
 
         def reform_data(xi):
-            return xi.reshape(-1,1)
+            return xi.reshape(-1, 1)
 
         X = np.apply_along_axis(reform_data, 1, X)
         X_train, X_test, Y_train, Y_test = train_test_split(
