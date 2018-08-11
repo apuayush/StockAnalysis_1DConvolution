@@ -11,14 +11,15 @@ class Model:
         self.history = None
         self.model = Sequential()
 
-    def build_model(self, input_shape=(20, 1), output_shape=1):
+    def build_model(self, input_shape: object = (20, 1), output_shape: object = 1) -> object:
         self.model = cnn.CNN(input_shape=input_shape, layers=[
             {
-                'type': 'conv1D',
+                'type': 'sepconv1D',
                 'args': {
                      'filters': 32,
                      'kernel_size': 5,
-                     'activation': 'relu'
+                     'activation': 'relu',
+                    'input_shape': input_shape
                 }
              },
             {

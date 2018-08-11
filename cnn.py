@@ -1,55 +1,117 @@
+from keras.layers import Conv1D,SeparableConv1D,MaxPool1D, Dropout, Flatten, Dense, Activation
 import numpy as np
+import unittest
+from keras.models import Sequential
+from keras.optimizers import SGD
+from keras.callbacks import ReduceLROnPlateau, EarlyStopping
+import matplotlib.pyplot as plt
 
-class CNN(object):
-    def __init__(self, layers, input_shape):
+def SepConv1D(args):
+    if 'input_shape' in args.keys():
+        return SeparableConv1D(filters=args['filters'], kernel_size=args['kernel_size'],
+                               input_shape=args['input_shape'], activation=args['activation'])
+    else:
+        return SeparableConv1D(filters=args['filters'], kernel_size=args['kernel_size'], activation=args['activation'])
+
+def conv_1D(args):
+    if 'input_shape' in args.keys():
+        return Conv1D(filters=args['filters'], kernel_size=args['kernel_size'],
+                               input_shape=args['input_shape'], activation=args['activation'])
+    else:
+        return Conv1D(filters=args['filters'], kernel_size=args['kernel_size'], activation=args['activation'])
+
+def pool(args):
+    return MaxPool1D(pool_size=args['pool_size'])
+
+def dropout(args):
+    return Dropout(args['ratio'])
+
+def flatten(args):
+    return Flatten()
+
+def dense(args):
+    return Dense(args['output'])
+
+def activation(args):
+    return Activation(args['function'])
+
+class CNN():
+    def __init__(self, layers):
+
+        self.model = Sequential()
+        self.history = None
         self.layers = layers
-        # self.weights_initializer()
+        self.layer_type = {
+            'sepconv1D': SepConv1D,
+            'maxpool1D': pool,
+            'conv1D': conv_1D,
+            'flatten': flatten,
+            'dense': dense,
+            'activation': activation,
+            'dropout': dropout
+        }
 
-    # def weights_initializer(self):
-    #     for layer in layers:
-    #         # filter_dim
-    #         wts = np.random.randn(*filter_dim) * np.sqrt(2.0 / (sum(filter_dim))).astype(np.float32)
+    def build_model(self):
+        for layer in self.layers:
+            self.model.add(self.layer_type[layer['type']](layer['args']))
 
-    def conv_forward(self, X, W):
+        self.model.summary()
+
+    def compile_model(self, loss="mse"):
+        sgd = SGD(lr=1e-2, decay=1e-6, momentum=0.95, nesterov=True)
+        self.model.compile(optimizer=sgd, loss=loss, metrics=['mae'])
+        pass
+
+    def fit_model(self, X_train, Y_train, epochs=100, batch_size=32, verbose=0):
+        self.model.fit(X_train, Y_train, epochs=epochs, batch_size=batch_size, verbose=verbose)
+        early_stopper = EarlyStopping(monitor='val_loss', min_delta=0, patience=40, verbose=1, mode='auto')
+        lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, verbose=1)
+        self.history = self.model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1,
+                                      callbacks=[lr_reducer], shuffle=False)
+        return self.history
+
+    def predict(self, x):
+        y = self.model.predict(x)
+        return y
+
+    def get_params(self):
         '''
-        Arguments:
-        X -- output activations of the previous layer, numpy array of shape (n_H_prev, n_W_prev) assuming input channels = 1
-        W -- Weights, numpy array of size (f, f) assuming number of filters = 1
-
-        Returns:
-        H -- conv output, numpy array of size (n_H, n_W)
-        cache -- cache of values needed for conv_backward() function
+        Method to return the parameters of the model
+        :return:
         '''
+        return self.model.get_config()
 
-        # Retrieving previous kernel size and filters from X's shape
-        X = X.T
-        W = W.T
-        (n_f_prev, n_k_prev) = X.shape
+    def visualise_history(self):
+        plt.plot(self.history.history['mean_absolute_error'])
+        plt.plot(self.history.history['val_mean_absolute_error'])
+        plt.title('model loss')
+        plt.ylabel('mean_absolute_error')
+        plt.xlabel('epoch')
+        plt.legend(['train', 'validation'], loc='upper left')
+        plt.show()
+        # summarize history for loss
+        plt.plot(self.history.history['loss'])
+        plt.plot(self.history.history['val_loss'])
+        plt.title('model loss')
+        plt.ylabel('loss')
+        plt.xlabel('epoch')
+        plt.legend(['train', 'validation'], loc='upper left')
+        plt.show()
 
-        # Retrieving dimensions from W's shape
-        f, k = W.shape
+    def evaluate(self, X_test, Y_test):
+        p = self.model.evaluate(X_test, Y_test)
+        print("model loss - %f \n model mean absolute error - %f" % (p[0], p[1]))
+        pre = self.model.predict(X_test)
+        plt.figure(figsize=(10,7))
+        plt.plot(pre[:80])
+        plt.plot(Y_test[:50])
+        plt.title("Difference compared to real stock close value")
+        plt.ylabel("scaled closing value")
+        plt.xlabel("epoch")
+        plt.legend(['predicted value', 'actual value'], loc='upper left')
+        plt.show()
 
-        # Compute the output dimensions assuming no padding and stride = 1
-        n_k = n_k_prev - k + 1
-        n_f = f
-        print(n_k)
 
-        # Initialize the output H with zeros (filters, kernels) for processing
-        H = np.zeros((n_f, n_k))
-
-        # Looping over vertical(h) and horizontal(w) axis of output volume
-        for filter in range(n_f):
-            print(filter)
-            for kernel in range(n_k):
-                x_slice = X[0, kernel:kernel + k]
-                # x_slice = x_slice.reshape(-1, 1)
-                H[filter, kernel] = np.sum(W[filter] * x_slice)
-
-        # Saving information in 'cache' for backprop
-        cache = (X, W)
-
-        return H.T, cache
-
-cnn = CNN([],2)
-H, cache = cnn.conv_forward(np.random.randn(30, 1), W=np.random.rand(5, 32))
-print(H.shape, len(cache))
+# class TestCNN(TestCase):
+#     def __init__(self):
+#         pass
