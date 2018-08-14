@@ -23,8 +23,8 @@ class Harvesting:
     def load_data(self, url=url, params=params):
         date = []
         close = []
-        if 'data.csv' in os.listdir():
-            df = pd.read_csv('data.csv')
+        if 'data/data.csv' in os.listdir():
+            df = pd.read_csv('data/data.csv')
 
         else:
             # get the data from api
@@ -40,7 +40,7 @@ class Harvesting:
                 print("Network connection error or wrong url")
                 return
             df = pd.DataFrame(data={'date': date, 'close': close})
-            df.to_csv('data.csv')
+            df.to_csv('data/data.csv')
 
         self.data = df
 
@@ -86,6 +86,9 @@ class Harvesting:
 
         print('total chunks ', len(X))
         print('each chunk contains', len(X[0]))
+
+        print('saving to data/data1.csv')
+        np.savetxt("data/data1.csv", X, delimiter=',')
         return np.array(X), np.array(Y)
 
     @staticmethod

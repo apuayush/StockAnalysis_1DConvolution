@@ -1,20 +1,13 @@
-from btgym import BTgymEnv
 import IPython.display as Display
 import PIL.Image as Image
-from gym import spaces
 import cnn
 import numpy as np
-
-from keras.models import Sequential, load_model
-from keras.layers.core import Dense, Dropout, Activation
-from keras.layers.recurrent import LSTM
-from keras.optimizers import RMSprop, Adam
 
 from collections import deque
 
 
 class Agent:
-    def __init__(self, state_shape, is_eval=False, model_name=""):
+    def __init__(self, env, state_shape, is_eval=False, model_name=""):
         self.state_shape = state_shape  # for my model 30 days
         self.action_size = 3  # sit, buy, sell
 
@@ -123,7 +116,7 @@ class Agent:
 
     def show_rendered_img(self, rgb_array):
         """
-        convert numpy array to rgb and display it on iitrading.ipynb
+        convert numpy array to rgb and display it on Main.ipynb
         """
         Display.display(Image.fromarray(rgb_array))
 
