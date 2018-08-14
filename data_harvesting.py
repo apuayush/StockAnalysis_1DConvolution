@@ -1,10 +1,17 @@
 import numpy as np
 import pandas as pd
 import os
+import requests
 from sklearn.model_selection import train_test_split
-
-# Stock price daily data is taken Kaggles competing on Huge stock Price dataset and the dataset is for company
-filename = "aa.us.txt"
+# from sklearn import preprocessing
+# Stock price daily data is taken from https://www.alphavantage.co/ API from 1995 to up til now of AAPL stocks
+url = 'https://www.alphavantage.co/query'
+params = {
+    'function': 'TIME_SERIES_DAILY',
+    'symbol': 'AAPL',
+    'outputsize': 'full',
+    'apikey': '5COC2L9JP8SMNM41'
+}
 
 
 class Harvesting:
@@ -13,19 +20,25 @@ class Harvesting:
         self.mean = None
         self.std = None
 
-    def load_data(self, filename=filename):
+    def load_data(self, url=url, params=params):
         date = []
         close = []
         if 'data.csv' in os.listdir():
             df = pd.read_csv('data.csv')
-        # Parsing from csv to reduce the time to load data everytime
-        else:
-            # read data from file
-            with open(filename, 'r') as f:
-                for line in f.read().split()[1:]:
-                    date.append(line.split(',')[0])
-                    close.append((line.split(',')[4]))
 
+        else:
+            # get the data from api
+            try:
+                api_data = requests.get(url, params=params).json()
+                for i in api_data['Time Series (Daily)']:
+                    dt = i
+                    close_value = np.float32(api_data['Time Series (Daily)'][i]['4. close'])
+                    date.append(dt)
+                    close.append(close_value)
+
+            except:
+                print("Network connection error or wrong url")
+                return
             df = pd.DataFrame(data={'date': date, 'close': close})
             df.to_csv('data.csv')
 
@@ -33,12 +46,12 @@ class Harvesting:
 
         return self.data
 
-    def scale(self, timeline):
+    def scale(self, timeseries):
         if self.mean is None or self.std is None:
             self.mean = np.mean(np.array(self.data['close']))
             self.std = np.std(np.array(self.data['close']))
 
-        return (timeline - self.mean) / self.std
+        return (timeseries - self.mean) / self.std
 
     def unscale(self, Y):
         return Y * self.std + self.mean
@@ -63,7 +76,7 @@ class Harvesting:
                 else:
                     timeseries = np.array(self.data['close'][i:i + train + predict])
                     timeseries = self.scale(timeseries)
-                    x_i = timeseries[:-1 * predict]
+                    x_i = timeseries[:-predict]
                     y_i = timeseries[-predict:]
 
             except:

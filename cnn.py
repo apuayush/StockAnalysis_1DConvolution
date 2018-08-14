@@ -1,10 +1,11 @@
-from keras.layers import Conv1D,SeparableConv1D,MaxPool1D, Dropout, Flatten, Dense, Activation
+from keras.layers import Conv1D, SeparableConv1D, MaxPool1D, Dropout, Flatten, Dense, Activation
 import numpy as np
 import unittest
 from keras.models import Sequential
 from keras.optimizers import SGD
 from keras.callbacks import ReduceLROnPlateau, EarlyStopping
 import matplotlib.pyplot as plt
+
 
 def SepConv1D(args):
     if 'input_shape' in args.keys():
@@ -13,31 +14,37 @@ def SepConv1D(args):
     else:
         return SeparableConv1D(filters=args['filters'], kernel_size=args['kernel_size'], activation=args['activation'])
 
+
 def conv_1D(args):
     if 'input_shape' in args.keys():
         return Conv1D(filters=args['filters'], kernel_size=args['kernel_size'],
-                               input_shape=args['input_shape'], activation=args['activation'])
+                      input_shape=args['input_shape'], activation=args['activation'])
     else:
         return Conv1D(filters=args['filters'], kernel_size=args['kernel_size'], activation=args['activation'])
+
 
 def pool(args):
     return MaxPool1D(pool_size=args['pool_size'])
 
+
 def dropout(args):
     return Dropout(args['ratio'])
+
 
 def flatten(args):
     return Flatten()
 
+
 def dense(args):
     return Dense(args['output'])
+
 
 def activation(args):
     return Activation(args['function'])
 
+
 class CNN():
     def __init__(self, layers):
-
         self.model = Sequential()
         self.history = None
         self.layers = layers
@@ -58,7 +65,7 @@ class CNN():
         self.model.summary()
 
     def compile_model(self, loss="mse"):
-        sgd = SGD(lr=1e-2, decay=1e-6, momentum=0.95, nesterov=True)
+        sgd = SGD(lr=0.01, decay=1e-6, momentum=0.95, nesterov=True)
         self.model.compile(optimizer=sgd, loss=loss, metrics=['mae'])
         pass
 
@@ -66,7 +73,7 @@ class CNN():
         self.model.fit(X_train, Y_train, epochs=epochs, batch_size=batch_size, verbose=verbose)
         early_stopper = EarlyStopping(monitor='val_loss', min_delta=0, patience=40, verbose=1, mode='auto')
         lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, verbose=1)
-        self.history = self.model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1,
+        self.history = self.model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, validation_split=0.25,
                                       callbacks=[lr_reducer], shuffle=False)
         return self.history
 
@@ -102,7 +109,7 @@ class CNN():
         p = self.model.evaluate(X_test, Y_test)
         print("model loss - %f \n model mean absolute error - %f" % (p[0], p[1]))
         pre = self.model.predict(X_test)
-        plt.figure(figsize=(10,7))
+        plt.figure(figsize=(10, 7))
         plt.plot(pre[:80])
         plt.plot(Y_test[:50])
         plt.title("Difference compared to real stock close value")
@@ -112,6 +119,6 @@ class CNN():
         plt.show()
 
 
-# class TestCNN(TestCase):
-#     def __init__(self):
-#         pass
+        # class TestCNN(TestCase):
+        #     def __init__(self):
+        #         pass
