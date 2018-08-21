@@ -6,10 +6,10 @@ from btgym import BTgymEnv
 
 
 class Strategy:
-    def __init__(self, state_shape, start_cash):
+    def __init__(self, state_shape, start_cash, filename='data1.csv'):
         # data1.csv contains sequence of 30 days chunks of data
         self.env = BTgymEnv(
-            filename='data1.csv',
+            filename=filename,
             state_shape={'raw_state': spaces.Box(low=-100, high=100, shape=state_shape)},
             skip_frame=5,
             start_cash=start_cash,
@@ -59,3 +59,7 @@ class Strategy:
                 agent.save_model("model/model"+str(trial))
 
         return steps
+
+
+state_shape = (100, 1)
+strategy = Strategy(state_shape, start_cash=10000, filename='data/DAT_ASCII_EURUSD_M1_2017.csv')

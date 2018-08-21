@@ -65,14 +65,14 @@ class CNN():
         self.model.summary()
 
     def compile_model(self, loss="mse"):
-        sgd = SGD(lr=0.01, decay=1e-6, momentum=0.95, nesterov=True)
+        sgd = SGD(lr=0.001, decay=1e-6, momentum=0.95, nesterov=True)
         self.model.compile(optimizer=sgd, loss=loss, metrics=['mae'])
         pass
 
     def fit_model(self, X_train, Y_train, epochs=100, batch_size=32, verbose=0):
         self.model.fit(X_train, Y_train, epochs=epochs, batch_size=batch_size, verbose=verbose)
         early_stopper = EarlyStopping(monitor='val_loss', min_delta=0, patience=40, verbose=1, mode='auto')
-        lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=10, verbose=1)
+        lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=5, verbose=1)
         self.history = self.model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, validation_split=0.25,
                                       callbacks=[lr_reducer], shuffle=False)
         return self.history
@@ -87,6 +87,9 @@ class CNN():
         :return:
         '''
         return self.model.get_config()
+
+    def save_model(self):
+        self.model.save_weights('model/cnn_model_1.h5')
 
     def visualise_history(self):
         plt.plot(self.history.history['mean_absolute_error'])

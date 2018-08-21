@@ -20,31 +20,53 @@ class Harvesting:
         self.mean = None
         self.std = None
 
-    def load_data(self, url=url, params=params):
-        date = []
-        close = []
-        if 'data/data.csv' in os.listdir():
-            df = pd.read_csv('data/data.csv')
+    def load_data(self, flag=True, url=url, params=params):
+        if flag:
+            self.data = pd.read_csv('data/DAT_ASCII_EURUSD_M1_2017.csv', sep=';')
+            return self.data
 
         else:
-            # get the data from api
-            try:
-                api_data = requests.get(url, params=params).json()
-                for i in api_data['Time Series (Daily)']:
-                    dt = i
-                    close_value = np.float32(api_data['Time Series (Daily)'][i]['4. close'])
-                    date.append(dt)
-                    close.append(close_value)
+            date = []
+            close = []
+            high = []
+            low = []
+            volume = []
+            open = []
+            if 'data.csv' in os.listdir('data'):
+                df = pd.read_csv('data/data.csv', sep=';')
 
-            except:
-                print("Network connection error or wrong url")
-                return
-            df = pd.DataFrame(data={'date': date, 'close': close})
-            df.to_csv('data/data.csv')
+            else:
+                # get the data from api
+                try:
+                    api_data = requests.get(url, params=params).json()
+                    for i in api_data['Time Series (Daily)']:
+                        dt = i
+                        p = api_data['Time Series (Daily)'][i]
 
-        self.data = df
+                        open_value = np.float32(p['1. open'])
+                        high_value = np.float32(p['2. high'])
+                        low_value = np.float32(p['3. low'])
+                        close_value = np.float32(p['4. close'])
+                        volume_value = np.float32(p['5. volume'])
+                        date.append(dt)
+                        close.append(close_value)
+                        high.append(high_value)
+                        open.append(open_value)
+                        low.append(low_value)
+                        volume.append(volume_value)
 
-        return self.data
+                except:
+                    print("Network connection error or wrong url")
+                    return
+                df = pd.DataFrame(data={'date': date, 'open': open,
+                                        'high': high, 'low': low,
+                                        'close': close, 'volume': volume
+                                        })
+                df.to_csv('data/data.csv', sep=';')
+
+            self.data = df
+
+            return self.data
 
     def scale(self, timeseries):
         if self.mean is None or self.std is None:
@@ -60,7 +82,6 @@ class Harvesting:
         X = []
         Y = []
         for i in range(0, len(self.data), step):
-
             try:
                 x_i = np.array(self.data['close'][i:i + train])
                 y_i = self.data['close'][i + train + predict]
@@ -78,9 +99,7 @@ class Harvesting:
                     timeseries = self.scale(timeseries)
                     x_i = timeseries[:-predict]
                     y_i = timeseries[-predict:]
-
-            except:
-                break
+            except: break
             X.append(x_i)
             Y.append(y_i)
 
@@ -101,3 +120,4 @@ class Harvesting:
         X_train, X_test, Y_train, Y_test = train_test_split(
             X, Y, test_size=split_ratio)
         return X_train, X_test, Y_train, Y_test
+

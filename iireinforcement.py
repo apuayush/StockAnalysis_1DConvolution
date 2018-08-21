@@ -31,7 +31,7 @@ class Agent:
                     'filters': 32,
                     'kernel_size': 5,
                     'activation': 'relu',
-                    'input_shape': self.state_size
+                    'input_shape': self.state_shape
                 }
             },
             {
@@ -85,6 +85,25 @@ class Agent:
             {
                 'type': 'dense',
                 'args': {
+                    'output': 250
+                }
+            },
+            {
+                'type': 'dense',
+                'args': {
+                    'output': 125
+                }
+            },
+            {
+                'type': 'dense',
+                'args': {
+                    'output': 32
+                }
+            },
+
+            {
+                'type': 'dense',
+                'args': {
                     'output': self.action_size
                 }
             },
@@ -96,7 +115,7 @@ class Agent:
             },
         ])
         cnn_model.build_model()
-        cnn_model.compile()
+        cnn_model.compile_model()
         return cnn_model
 
     def act(self, state):
